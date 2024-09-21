@@ -153,6 +153,29 @@ class $modify(CCEGLView) {
 
 #else
 
+#ifdef GEODE_IS_IOS
+
+#include <objc/objc.h>
+
+static void(*s_eaglview_swapBuffersOrig)(void*, SEL);
+
+void eaglview_swapBuffersHook(void* self, SEL sel)
+{
+	if (ImGuiCocos::get().isInitialized())
+		ImGuiCocos::get().drawFrame();
+
+	s_eaglview_swapBuffersOrig(self, sel);
+}
+
+$execute {
+	if (auto orig = geode::hook::replacveObjcMethod("EAGLView", "swapBuffers", (void*)eaglview_swapBuffersHook))
+	{
+		s_eaglview_swapBuffersOrig = reinterpret_cast<void(*)(void*, SEL)>(orig.unwrap());
+	}
+};
+
+#else
+
 #include <Geode/modify/CCDirector.hpp>
 
 class $modify(CCDirector) {
@@ -162,5 +185,7 @@ class $modify(CCDirector) {
 			ImGuiCocos::get().drawFrame();
 	}
 };
+
+#endif
 
 #endif
